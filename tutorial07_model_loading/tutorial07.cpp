@@ -1,3 +1,9 @@
+/*************************************
+* Authors: Anirudh Nistala(b16091)	 *
+*		   Arpit Bhadauria(b17009)	 *	
+**************************************/
+
+
 // Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,12 +20,13 @@ GLFWwindow* window;
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
-
+#include <glm/gtx/string_cast.hpp>
 #include <common/shader.hpp>
 #include <common/texture.hpp>
 #include <common/controls.hpp>
 #include <common/objloader.hpp>
 
+#include <iostream>
 int main( void )
 {
 	// Initialise GLFW
@@ -86,7 +93,8 @@ int main( void )
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 
 	// Load the texture
-	GLuint Texture = loadDDS("uvmap.DDS");
+	GLuint Texture = loadDDS("p1.dds");
+	GLuint Texture2 = loadDDS("p2.dds");
 	
 	// Get a handle for our "myTextureSampler" uniform
 	GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
@@ -95,8 +103,21 @@ int main( void )
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals; // Won't be used at the moment.
-	bool res = loadOBJ("cube.obj", vertices, uvs, normals);
+	std::vector<glm::vec3> vertices2;
+	std::vector<glm::vec2> uvs2;
+	std::vector<glm::vec3> normals2; // Won't be used at the moment.
 
+	int count;
+
+	bool res = loadOBJ("2squares.obj", count, vertices,vertices2, uvs,uvs2, normals,normals2);
+	//bool res = loadOBJ("2squares.obj", vertices, uvs, normals);
+
+	for(int x=0; x<vertices2.size();x++)
+	{
+		std::cout<<glm::to_string(vertices2[x])<<std::endl;
+	}
+
+	printf("Count=%d\n",count);
 	// Load it into a VBO
 
 	GLuint vertexbuffer;
@@ -108,6 +129,19 @@ int main( void )
 	glGenBuffers(1, &uvbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+
+	GLuint vertexbuffer2;
+	if(count==2){
+		glGenBuffers(1, &vertexbuffer2);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer2);
+		glBufferData(GL_ARRAY_BUFFER, vertices2.size() * sizeof(glm::vec3), &vertices2[0], GL_STATIC_DRAW);
+	}
+	GLuint uvbuffer2;
+	if(count==2){
+		glGenBuffers(1, &uvbuffer2);
+		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer2);
+		glBufferData(GL_ARRAY_BUFFER, uvs2.size() * sizeof(glm::vec2), &uvs2[0], GL_STATIC_DRAW);
+	}
 
 	do{
 
@@ -163,6 +197,45 @@ int main( void )
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
+
+		if(count==2)
+		{
+			// Bind our texture in Texture Unit 0
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, Texture2);
+			// Set our "myTextureSampler" sampler to use Texture Unit 0
+			glUniform1i(TextureID, 0);
+
+			// 1rst attribute buffer : vertices
+			glEnableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer2);
+			glVertexAttribPointer(
+				0,                  // attribute
+				3,                  // size
+				GL_FLOAT,           // type
+				GL_FALSE,           // normalized?
+				0,                  // stride
+				(void*)0            // array buffer offset
+			);
+
+			// 2nd attribute buffer : UVs
+			glEnableVertexAttribArray(1);
+			glBindBuffer(GL_ARRAY_BUFFER, uvbuffer2);
+			glVertexAttribPointer(
+				1,                                // attribute
+				2,                                // size
+				GL_FLOAT,                         // type
+				GL_FALSE,                         // normalized?
+				0,                                // stride
+				(void*)0                          // array buffer offset
+			);
+
+			// Draw the triangle !
+			glDrawArrays(GL_TRIANGLES, 0, vertices2.size() );
+
+			glDisableVertexAttribArray(0);
+			glDisableVertexAttribArray(1);
+		}	
 
 		// Swap buffers
 		glfwSwapBuffers(window);
